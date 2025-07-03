@@ -1688,7 +1688,7 @@ dir (char *dirname)
   if (!(dirname = setup_part (dirname)))
     return 0;
 
-  if (*dirname != '/')
+  if (*dirname != '/' && saved_drive != 0x21)
     return !(errnum = ERR_BAD_FILENAME);
 
   if (fsys_type == NUM_FSYS)
