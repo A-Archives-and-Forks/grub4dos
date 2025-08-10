@@ -10664,7 +10664,13 @@ geometry_probe_failed:
   goto map_whole_drive;
 
 geometry_probe_ok:
-  
+#if 0
+/* mem与probed_total_sectors有何关系？一个是内存，一个是磁盘！
+   出错例子：一个系统磁盘2T，内存16G。
+   加载VHD，sector_count=0x800001,filemax=0x100000200,mem=0,probed_total_sectors=0xffffffff
+   执行此处代码，mem=0xffffffff00000001。最终使得bytes_needed=0x20000000000!!!
+   2025-08-10修改。
+*/
 //  if (! disable_map_info)
 //  {
     if (debug > 0 && ! disable_map_info)
@@ -10675,6 +10681,7 @@ geometry_probe_ok:
 	mem = - (unsigned long long)probed_total_sectors;
     }
 //  }
+#endif
   if (BPB_H || BPB_S)
 	if (BPB_H != probed_heads || BPB_S != probed_sectors_per_track)
 	{
@@ -10885,7 +10892,6 @@ map_whole_drive:
 	bytes_needed += sectors_per_track << SECTOR_BITS;	/* build the Master Boot Track */
 
       bytes_needed = ((bytes_needed+4095)&(-4096ULL));	/* 4KB alignment */
-//}
       if ((to == 0xffff || to == ram_drive) && sector_count == 1)
 	/* mem > 0 */
 	bytes_needed = 0;
@@ -10916,11 +10922,11 @@ map_whole_drive:
       if (from == INITRD_DRIVE && to == 0xffff && tmp_mem_max > initrd_addr_max){ //INITRD_DRIVE
 			tmp_mem_max = initrd_addr_max;
 	  }
-      if (mbi.flags & MB_INFO_MEM_MAP)
+      if (mbi.flags & MB_INFO_MEM_MAP)	//如果是完整的内存映射=0x40
         {
           struct AddrRangeDesc *map = (struct AddrRangeDesc *) saved_mmap_addr;
           unsigned long end_addr = saved_mmap_addr + saved_mmap_length;
-
+//以下探测地址
           for (; end_addr > (unsigned long) map; map = (struct AddrRangeDesc *) (((int) map) + 4 + map->size))
 	    {
 	      unsigned long long tmpbase, tmpend, tmpmin, sum;
@@ -10955,7 +10961,7 @@ map_whole_drive:
 	      }
 	      if (tmpbase < tmpmin) // base fall below minimum address for this region
 		  continue;
-
+//以下在插槽循环
 	      for (i = 0; i < DRIVE_MAP_SIZE; i++)
 	        {
       
@@ -10999,7 +11005,7 @@ map_whole_drive:
 			}
 		    }
 	        } /* for (i = 0; i < DRIVE_MAP_SIZE; i++) */
-
+//以上在插槽循环
 	      if (tmpbase >= tmpmin)
 	      {
 		/* check if the memory area overlaps the (md)... or (rd)... file. */
@@ -11059,7 +11065,7 @@ map_whole_drive:
 	bytes_needed += sectors_per_track << SECTOR_BITS;	/* build the Master Boot Track */
 
       /* bytes_needed points to the first partition, base points to MBR */
-      
+//探测地址结束    
 //#undef MIN_EMU_BASE
       //      if (! grub_open (filename1))
       //	return 0;
