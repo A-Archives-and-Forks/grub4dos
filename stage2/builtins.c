@@ -275,11 +275,13 @@ disk_read_print_func (unsigned long long sector, unsigned long offset, unsigned 
 
 extern int rawread_ignore_memmove_overflow; /* defined in disk_io.c */
 long query_block_entries;
-//static unsigned long long map_start_sector[DRIVE_MAP_FRAGMENT];	
-//static unsigned long long map_num_sectors[DRIVE_MAP_FRAGMENT];
+#if 1   //2026-01-13
+static unsigned long long map_start_sector[DRIVE_MAP_FRAGMENT];	
+static unsigned long long map_num_sectors[DRIVE_MAP_FRAGMENT];
+#else
 unsigned long long* map_start_sector=0;	
 unsigned long long* map_num_sectors;
-
+#endif
 static unsigned long long blklst_start_sector;
 static unsigned long long blklst_num_sectors;
 static unsigned long blklst_num_entries;
@@ -368,7 +370,7 @@ blocklist_func (char *arg, int flags)
   blklst_num_sectors = 0;
   blklst_num_entries = 0;
   blklst_last_length = 0;
-
+#if 0   //2026-01-13
   if (!map_start_sector)
   {
     map_start_sector = grub_zalloc(DRIVE_MAP_FRAGMENT);
@@ -379,7 +381,7 @@ blocklist_func (char *arg, int flags)
     grub_memset (map_start_sector, 0, DRIVE_MAP_FRAGMENT);
     grub_memset (map_num_sectors, 0, DRIVE_MAP_FRAGMENT);    
   }
-#if 0
+#else
   int i;
  for (i = 0; i < DRIVE_MAP_FRAGMENT; i++)
  {
@@ -5851,7 +5853,7 @@ find_func (char *arg, int flags)
   //char *in_drives = NULL;	/* search in drive list */
 //  char root_found[16];
   errnum = 0;
-  int i = 0;
+//  int i = 0;  //2026-01-13
 #ifdef FSYS_FB
   if (saved_drive == FB_DRIVE && !(unsigned char)(fb_status >> 8))
   {
@@ -5884,6 +5886,7 @@ find_func (char *arg, int flags)
       }
 		else if (grub_memcmp(arg, "--devices=", 10) == 0)
 		{
+			int i = 0;  //2026-01-13
 			arg += 10;
 			while (i < 7 && *arg >= 'a')
 			{
@@ -6011,6 +6014,7 @@ find_func (char *arg, int flags)
 				else
 					continue;
 #else
+        int i;  //2026-01-13
         for (drive = 0xa0; drive <= 0xff; drive++)
         {
           for (i = 0; i < DRIVE_MAP_SIZE; i++)

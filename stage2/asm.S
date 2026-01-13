@@ -490,9 +490,14 @@ real_codestart:
 
 	/* restore old emu data, except the first byte of handler size. */
 //	movw	$(0x140 - 1), %cx
-	mov $(restore_old_emu - int13_handler - 1), %cx
+//	mov $(restore_old_emu - int13_handler - 1), %cx
+	movw	$(0x100 - 1), %cx   //2026-01-13
 	movw	$1, %si			/* DS=current int13 code segment */
 	movw	$ABS(int13_handler + 1), %di		/* ES=0 */
+	repz movsb
+	movw	$(0x140 - 0x103), %cx   //2026-01-13
+	movw	$0x103, %si			/* DS=current int13 code segment */
+	movw	$ABS(int13_handler + 0x103), %di		/* ES=0 */
 	repz movsb
 #ifdef CDROM_INIT
 	/* calculate the new max_cdrom_id. */
@@ -513,8 +518,10 @@ real_codestart:
 	movw	$ABS(EXT_C(bios_drive_map)), %di		/* ES=0 */
 	cs repz movsw
 	
-	movw	$(0x3000 - 0x2800)/8, %cx
-	movw	$0x2800, %si
+//	movw	$(0x3000 - 0x2800)/8, %cx
+//	movw	$0x2800, %si
+	movw	$(0x2800)/8, %cx      //查0x2800字节     'FRAGMENT'标记在“int13_handler + 0x140”或者“int13_handler + 0x27e0"处
+	movw	$(0x140), %si					//必须8字节对齐     2026-01-13
 3:
 	cmpl	$0x47415246, (%si)		/* FRAGMENT */
 	je	3f
@@ -522,8 +529,8 @@ real_codestart:
 	loop	3b
 	jmp	2f
 3:
-	cmpl	$16, 0xfc							//16 FRAGMENT
-	jne	3f	
+//	cmpl	$16, 0xfc							//16 FRAGMENT  2026-01-13
+//	jne	3f	
 
 #if	MAP_NUM_16	
 	pushw	%si
@@ -2174,11 +2181,12 @@ ENTRY(hooked_drive_map_1)
 #else
 ENTRY(hooked_drive_map)
 	.space	(DRIVE_MAP_SIZE + 1) * DRIVE_MAP_SLOT_SIZE
-	/* 8-byte space reserved. */
+	/* 4-byte space reserved. */
 #endif
 
 	. = int13_handler + 0xFC
-	.long	16
+//	.long	16
+	.long	0       //2026-01-13 未使用
 
 	. = int13_handler + 0x100	/* real int13 handler entry at 0x100 */
 	
@@ -2270,9 +2278,9 @@ VARIABLE(saved_pxe_mac)
 	/* space reserved. */
 
 	. = int13_handler + 0x140
-	.ascii	"FRAGMENT"
+//	.ascii	"FRAGMENT"      2026-01-13
 	
-ENTRY(hooked_fragment_map)	.space	FRAGMENT_MAP_SLOT_SIZE
+//ENTRY(hooked_fragment_map)	.space	FRAGMENT_MAP_SLOT_SIZE
 	
 restore_old_emu:
   
@@ -6375,9 +6383,9 @@ ENTRY(hooked_drive_map_2)
 	.space	(DRIVE_MAP_SIZE / 2 + 1) * DRIVE_MAP_SLOT_SIZE
 #endif
 
-//	.ascii	"FRAGMENT"
+	.ascii	"FRAGMENT"    //2026-01-13
 	
-//ENTRY(hooked_fragment_map)	.space	FRAGMENT_MAP_SLOT_SIZE
+ENTRY(hooked_fragment_map)	.space	FRAGMENT_MAP_SLOT_SIZE
 
 	.ascii	"int13end"
 
