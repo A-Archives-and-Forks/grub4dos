@@ -5853,7 +5853,7 @@ find_func (char *arg, int flags)
   //char *in_drives = NULL;	/* search in drive list */
 //  char root_found[16];
   errnum = 0;
-//  int i = 0;  //2026-01-13
+  int i = 0;
 #ifdef FSYS_FB
   if (saved_drive == FB_DRIVE && !(unsigned char)(fb_status >> 8))
   {
@@ -5886,7 +5886,6 @@ find_func (char *arg, int flags)
       }
 		else if (grub_memcmp(arg, "--devices=", 10) == 0)
 		{
-			int i = 0;  //2026-01-13
 			arg += 10;
 			while (i < 7 && *arg >= 'a')
 			{
@@ -6014,7 +6013,6 @@ find_func (char *arg, int flags)
 				else
 					continue;
 #else
-        int i;  //2026-01-13
         for (drive = 0xa0; drive <= 0xff; drive++)
         {
           for (i = 0; i < DRIVE_MAP_SIZE; i++)
