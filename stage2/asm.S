@@ -56,7 +56,8 @@ start:
 _start:
 
 ENTRY(main)
-
+ENTRY(start)
+ENTRY(_start)
 	.code16
 
 	/* If BP=0x07C0, it indicates boot from pxe or no-emulation cdrom */
