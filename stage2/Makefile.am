@@ -27,8 +27,8 @@ noinst_PROGRAMS = pre_stage2.exec dosstart.exec badgrubstart.exec grldrstart.exe
 
 MOSTLYCLEANFILES = $(noinst_PROGRAMS)
 
-PRE_STAGE2_LINK = -nostdlib -Wl,-N -Wl,-Ttext -Wl,8200 $(BIN_LDFLAGS)
-START_LINK = -nostdlib -Wl,-N -Wl,-Ttext -Wl,8000 $(BIN_LDFLAGS)
+PRE_STAGE2_LINK = -nostartfiles -e _start -nostdlib -Wl,-N -Wl,-Ttext -Wl,8200 $(BIN_LDFLAGS)
+START_LINK = -nostartfiles -e _start -nostdlib -Wl,-N -Wl,-Ttext -Wl,8000 $(BIN_LDFLAGS)
 
 if SERIAL_SUPPORT
 SERIAL_FLAGS = -DSUPPORT_SERIAL=1
