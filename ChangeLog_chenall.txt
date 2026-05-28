@@ -1,4 +1,11 @@
 ﻿更新说明：
+2026-05-28 (yaya)
+  1.修正grldr.mbr启动ext2/exfat分区找不到grldr的问题。
+  2.增加gpt_or_mbr.bin，用于启动mbr/gpt分区的grldr.mbr。
+    gpt_or_mbr.bin安装在磁盘LBA0扇区，grldr.mbr可安装在任意位置。
+    把gpt_or_mbr.bin的偏移0x28处的4字节“11 22 33 44”，修改为grldr.mbr的实际安装LBA起始扇区。
+  3.增加hd_udf.bin，用于启动udf格式的硬盘。
+
 2026-01-13 (yaya)
   改进G4D启动另一版本G4D的兼容性。
   1. 新版G4D作为第二个G4D启动，兼容任意版本的第一个G4D启动。

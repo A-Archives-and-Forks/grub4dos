@@ -4853,19 +4853,18 @@ Entry_12_64_ext:                                    /* cs=ds=es=0000 ss=2000 */
 //        movw    $5, %cx                 /* More bytes */
         movw    $(grldr_un_12_64_ext - Entry_12_64_ext + 0x7c30), %si /*'GRLDR' First place */
 1:      
-				cmpb $0x61, %es:(%di)
-				jb 101f
-				cmpb $0x7a, %es:(%di)
-				ja 101f
-        andb $0xdf, %es:(%di)        		/* lowercase to lowercase */
-101:        
+        orb $0x20, %ds:(%si)						/* Switch to lowercase */
+        orb $0x20, %es:(%di)						/* Switch to lowercase */
 				cmpsb
         jne     1f                      /* NO,Restore directory entry, check the next entry */
         incw    %di
         loop    1b                      /* The same, compare the next character */
 				cmpb $0, (%si)
+        je 102
+        cmpb $0x20, (%si)
 				jne 1f
         /* GRLDR has been found */
+102:
         popw	%di                     /* Restore directory entry */
         /* files stored continuously, Calculate the number of sectors the file */
         movw    %es:0x18(%di), %ax      /* 16-bit low byte file */
@@ -5457,21 +5456,6 @@ find_grldr_mbr:
 	pushw	%ds		/* DS=0 */
 	movw	%di, %ds	/* DS=0x1000 */
 	movw	$(filename_ext2_mbr - Entry_12_64_ext + 0x7c30), %di
-	
-	pushw %di
-102:
-	cmpb $0, %es:(%di)
-	je 101f
-	cmpb $0x41, %es:(%di)
-	jb 103f
-	cmpb $0x5a, %es:(%di)
-	ja 103f
-	orb $0x20, %es:(%di)								/* Switch to lowercase */
-103:
-	incw %di
-	jmp 102b
-101:
-	popw %di
 
 	pushw	%si
 	lodsl			/* This is possible inode number for grldr */
@@ -5482,10 +5466,15 @@ find_grldr_mbr:
 				/* AH=file_type(1 for regular file) */
         xorb    %ah, %ah
 	xchgw	%ax, %cx	/* CX=name_len */
-	repz    cmpsb
+101:
+  orb $0x20, %ds:(%si)								/* Switch to lowercase */
+  orb $0x20, %es:(%di)								/* Switch to lowercase */
+  cmpsb
 	jnz	5f
-	xchgw	%ax, %cx	/* movb	$0, %al */
-	scasb	
+  loop  101b                          /* The same, compare the next character */
+  cmpb $0, (%si)
+  je 5f
+  cmpb $0x20, (%si)
 5:
 	popl	%eax		/* This is possible inode number for grldr */
 	popw	%si
@@ -9061,6 +9050,80 @@ udf_partition_start:
 	
 /* ********************  CDROM_bin end  ****************************** */ 
 
+/* ********************  GPT_bin start  ****************************** */ 
+Entry_gpt:
+
+	cli
+	xorl %ebx, %ebx
+	movw %bx, %ss
+	movw $0x7c00, %sp       //ss:sp=0000:7c00
+	movw %sp, %bp           //bp=7c00
+	pushw %bx
+	popw %ds                //ds=0000
+	pushw %bx
+	popw %es                //es=0000
+	sti
+	cld
+	movw %bp, %si
+	movw $0x600, %di
+	movw $0x100, %cx
+	repz  movsw            	//0000:7c00->0000:0600  200字节
+	pushw %ds
+	pushw $(read - Entry_gpt + 0x600)
+	lret
+
+//读grldr.mbr到0000:7c00  2000字节 	
+read:
+	movw $3, %di            //读3次       
+read_xh:
+	pushaw
+	pushl %ebx
+	#pushl $0x22(或者$0x00000022)  会编译为"66 6A 22",即压栈1字节！ 应当编译为"66 68 22 00 00 00"
+	pushl $0x44332211       //实际使用时，应当替换为grldr.mbr在磁盘扇区的起始值  （“11 22 33 44” 编译后在0x28处）
+	pushw %es
+	pushw %bp
+	pushw $16
+	pushw $16
+	movw %sp, %si
+	movb $0x42, %ah
+	int $0x13
+	popaw
+	popaw
+	jnb read_end            //成功 
+	xorw %ax, %ax           //失败复位
+	int $0x13
+	decw %di                //读次数-1
+	jne read_xh							//不为零继续
+	movw $(err - Entry_gpt + 0x600), %si
+xs:
+	lodsb
+	cmpb $0, %al
+	je xs_end               //00结束
+	movw $7, %bx
+	movb $0xe, %ah
+	int $0x10
+	jmp xs               		//继续
+
+//死循环
+xs_end:
+	jmp xs_end
+
+read_end:
+	pushw %ds
+	pushw %bp
+	lret
+
+err:
+  .ascii  "Error loading grldr.mbr\0"
+
+  . = Entry_gpt + 0x180
+  .ascii  "Install grldr.mbr on GPT or MBR"
+  . = Entry_gpt + 0x1b0  
+  .ascii  "Replace '11 22 33 44' with starting LBA using grldr.mbr"
+  . = Entry_gpt + 0x1fe
+  .word	0xAA55	
+/* ********************  GPT_bin end  ****************************** */ 
+
 /* ********************  HD_UDF_bin start  ****************************** */ 
 Entry_hd_udf:
  
@@ -9254,7 +9317,8 @@ read_fileEntry:
 	addw	$0x10d8, %si
 	movw	$0x2000, %di
 	movw	$0x80, %cx
-	rep movsd
+//	rep movsd
+  rep movsl
 	jmp	4f
 1:
 	cmpw	$0, %ax
